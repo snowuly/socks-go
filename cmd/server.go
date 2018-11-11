@@ -10,8 +10,9 @@ import (
 	"io"
 	"log"
 	"net"
-	"socks/secureconn"
 	"strconv"
+
+	"github.com/snowuly/socks/secureconn"
 )
 
 var (
