@@ -50,10 +50,7 @@ func (c *Conn) InitWrite() (err error) {
 	rand.Read(iv)
 	c.enc = cipher.NewCFBEncrypter(c.block, iv)
 	c.wbuf = make([]byte, bufSize)
-	n, err = c.conn.Write(iv)
-	if n < blockSize {
-		err = io.ErrShortWrite
-	}
+	_, err = c.conn.Write(iv)
 	return
 }
 
