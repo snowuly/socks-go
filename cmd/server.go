@@ -26,7 +26,7 @@ func main() {
 func run() {
 	config := map[string]string{
 		"8080": "chenermao",
-		"8081": "chenyinuo",
+		"8081": "duanmingming",
 	}
 
 	for port, pwd := range config {
@@ -114,9 +114,11 @@ func handle(conn net.Conn, block cipher.Block) {
 		log.Println("connect remote:", err)
 		return
 	}
-	if !closed {
-		remote.Close()
-	}
+	defer func() {
+		if !closed {
+			remote.Close()
+		}
+	}()
 	go func() {
 		if n > reqLen {
 			remote.Write(buf[reqLen:n])
