@@ -10,9 +10,8 @@ import (
 	"io"
 	"log"
 	"net"
+	"socks-go/socks"
 	"strconv"
-
-	"github.com/snowuly/socks/secureconn"
 )
 
 var (
@@ -22,6 +21,8 @@ var (
 func main() {
 	run()
 }
+
+var traffic = socks.NewTraffic()
 
 func run() {
 	config := map[string]string{
@@ -34,9 +35,8 @@ func run() {
 		block, _ := aes.NewCipher(md5Sum[:])
 		go createServer(port, block)
 	}
+	traffic.Run()
 
-	ch := make(chan struct{})
-	<-ch
 }
 
 func createServer(port string, block cipher.Block) {
@@ -56,25 +56,26 @@ func createServer(port string, block cipher.Block) {
 }
 
 func handle(conn net.Conn, block cipher.Block) {
+	sconn := socks.NewConn(conn, block)
+
 	closed := false
 	defer func() {
 		if !closed {
-			conn.Close()
+			sconn.Close()
 		}
 	}()
-	sconn := secureconn.New(conn, block)
 
 	if err := sconn.InitRead(); err != nil {
-		log.Println("init read:", err)
 		return
 	}
 
-	buf := make([]byte, 32*1024)
+	buf := make([]byte, 266)
 
 	var n int
 	var err error
 
-	if n, err = io.ReadAtLeast(sconn, buf, 2); err != nil {
+	socks.SetReadTimeout(sconn)
+	if n, err = io.ReadFull(sconn, buf[:2]); err != nil {
 		log.Println("read remote addr:", err)
 		return
 	}
@@ -87,14 +88,11 @@ func handle(conn net.Conn, block cipher.Block) {
 	case 4:
 		reqLen = 19
 	default:
-		log.Println("unsupport addr type: %d\n", buf[0])
+		// highly possible wrong password
 		return
 	}
-	if n < reqLen {
-		if _, err = io.ReadFull(sconn, buf[:reqLen]); err != nil {
-			log.Println("read remote addr:", err)
-			return
-		}
+	if _, err = io.ReadFull(sconn, buf[n:reqLen]); err != nil {
+		return
 	}
 	port := binary.BigEndian.Uint16(buf[reqLen-2 : reqLen])
 
@@ -111,28 +109,22 @@ func handle(conn net.Conn, block cipher.Block) {
 
 	var remote net.Conn
 	if remote, err = net.Dial("tcp", addr); err != nil {
-		log.Println("connect remote:", err)
 		return
 	}
-	defer func() {
-		if !closed {
-			remote.Close()
-		}
-	}()
+	log.Println("connected to:", addr)
+	closed = true
 	go func() {
-		if n > reqLen {
-			remote.Write(buf[reqLen:n])
-		}
-		io.Copy(remote, sconn)
-		conn.Close()
-		remote.Close()
-		closed = true
+		socks.PipeThenClose(sconn, remote, func(n int) {
+			traffic.Add(port, n)
+		})
 	}()
 
 	if err = sconn.InitWrite(); err != nil {
-		log.Println("init write:", err)
+		sconn.Close()
 		return
 	}
-	io.Copy(sconn, remote)
+	socks.PipeThenClose(remote, sconn, func(n int) {
+		traffic.Add(port, n)
+	})
 
 }

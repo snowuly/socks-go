@@ -32,7 +32,7 @@ const (
 var (
 	readTimeout = 20 // second
 	debug       = true
-	serverAddr  = "127.0.0.1:8080"
+	serverAddr  = ":8080"
 	password    = "chenermao"
 )
 

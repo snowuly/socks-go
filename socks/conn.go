@@ -1,4 +1,4 @@
-package secureconn
+package socks
 
 import (
 	"crypto/cipher"
@@ -9,19 +9,18 @@ import (
 
 const (
 	blockSize = 16
-	bufSize   = 32 * 1024
 )
 
 type Conn struct {
-	conn  net.Conn
+	net.Conn
 	block cipher.Block
+	wbuf  []byte
 	enc   cipher.Stream
 	dec   cipher.Stream
-	wbuf  []byte
 }
 
 func (c *Conn) Read(b []byte) (n int, err error) {
-	n, err = c.conn.Read(b)
+	n, err = c.Conn.Read(b)
 	if n > 0 {
 		c.dec.XORKeyStream(b[:n], b[:n])
 	}
@@ -30,16 +29,17 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 func (c *Conn) Write(b []byte) (int, error) {
 	n := len(b)
 	c.enc.XORKeyStream(c.wbuf[:n], b)
-	return c.conn.Write(c.wbuf[:n])
+	return c.Conn.Write(c.wbuf[:n])
 }
 
 func (c *Conn) Close() error {
-	return c.conn.Close()
+	leakbuf.Put(c.wbuf)
+	return c.Conn.Close()
 }
 
 func (c *Conn) InitRead() (err error) {
 	iv := make([]byte, blockSize)
-	if _, err = io.ReadFull(c.conn, iv); err != nil {
+	if _, err = io.ReadFull(c.Conn, iv); err != nil {
 		return
 	}
 	c.dec = cipher.NewCFBDecrypter(c.block, iv)
@@ -49,11 +49,10 @@ func (c *Conn) InitWrite() (err error) {
 	iv := make([]byte, blockSize)
 	rand.Read(iv)
 	c.enc = cipher.NewCFBEncrypter(c.block, iv)
-	c.wbuf = make([]byte, bufSize)
-	_, err = c.conn.Write(iv)
+	_, err = c.Conn.Write(iv)
 	return
 }
 
-func New(conn net.Conn, block cipher.Block) *Conn {
-	return &Conn{conn, block, nil, nil, nil}
+func NewConn(conn net.Conn, block cipher.Block) *Conn {
+	return &Conn{conn, block, leakbuf.Get(), nil, nil}
 }
