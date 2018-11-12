@@ -25,8 +25,8 @@ func main() {
 
 func run() {
 	config := map[string]string{
-		"8387": "chenermao",
-		"8389": "chenyinuo",
+		"8080": "chenermao",
+		"8081": "chenyinuo",
 	}
 
 	for port, pwd := range config {
