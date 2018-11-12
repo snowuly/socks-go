@@ -1,7 +1,6 @@
 package socks
 
 import (
-	"log"
 	"net"
 	"time"
 )
@@ -32,7 +31,6 @@ func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
 			}
 		}
 		if err != nil {
-			log.Println("read err:", src.LocalAddr().String(), src.RemoteAddr().String(), err)
 			return
 		}
 	}

@@ -25,9 +25,9 @@ func main() {
 var traffic = socks.NewTraffic()
 
 func run() {
-	config := map[string]string{
-		"8080": "chenermao",
-		"8081": "duanmingming",
+	config := map[uint16]string{
+		8080: "chenermao",
+		8081: "duanmingming",
 	}
 
 	for port, pwd := range config {
@@ -39,8 +39,8 @@ func run() {
 
 }
 
-func createServer(port string, block cipher.Block) {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+func createServer(port uint16, block cipher.Block) {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		log.Println("create server:", err)
 		return
@@ -51,11 +51,11 @@ func createServer(port string, block cipher.Block) {
 			log.Println("accept:", err)
 			continue
 		}
-		go handle(conn, block)
+		go handle(conn, block, port)
 	}
 }
 
-func handle(conn net.Conn, block cipher.Block) {
+func handle(conn net.Conn, block cipher.Block, serverPort uint16) {
 	sconn := socks.NewConn(conn, block)
 
 	closed := false
@@ -111,11 +111,10 @@ func handle(conn net.Conn, block cipher.Block) {
 	if remote, err = net.Dial("tcp", addr); err != nil {
 		return
 	}
-	log.Println("connected to:", addr)
 	closed = true
 	go func() {
 		socks.PipeThenClose(sconn, remote, func(n int) {
-			traffic.Add(port, n)
+			traffic.Add(serverPort, n)
 		})
 	}()
 
@@ -124,7 +123,7 @@ func handle(conn net.Conn, block cipher.Block) {
 		return
 	}
 	socks.PipeThenClose(remote, sconn, func(n int) {
-		traffic.Add(port, n)
+		traffic.Add(serverPort, n)
 	})
 
 }
