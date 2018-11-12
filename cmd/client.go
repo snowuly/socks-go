@@ -32,7 +32,7 @@ const (
 var (
 	readTimeout = 20 // second
 	debug       = true
-	serverAddr  = "127.0.0.1:8387"
+	serverAddr  = "35.241.81.147:8080"
 	password    = "chenermao"
 )
 
@@ -42,7 +42,7 @@ func main() {
 
 func run() {
 
-	ln, err := net.Listen("tcp", "127.0.0.1:1081")
+	ln, err := net.Listen("tcp", ":1081")
 	if err != nil {
 		log.Fatal(err)
 	}

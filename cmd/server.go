@@ -56,7 +56,12 @@ func createServer(port string, block cipher.Block) {
 }
 
 func handle(conn net.Conn, block cipher.Block) {
-	defer conn.Close()
+	closed := false
+	defer func() {
+		if !closed {
+			conn.Close()
+		}
+	}()
 	sconn := secureconn.New(conn, block)
 
 	if err := sconn.InitRead(); err != nil {
@@ -107,16 +112,25 @@ func handle(conn net.Conn, block cipher.Block) {
 	var remote net.Conn
 	if remote, err = net.Dial("tcp", addr); err != nil {
 		log.Println("connect remote:", err)
+		return
 	}
-	if err = sconn.InitWrite(); err != nil {
-		log.Println("init write:", err)
+	if !closed {
+		remote.Close()
 	}
 	go func() {
 		if n > reqLen {
 			remote.Write(buf[reqLen:n])
 		}
 		io.Copy(remote, sconn)
+		conn.Close()
+		remote.Close()
+		closed = true
 	}()
+
+	if err = sconn.InitWrite(); err != nil {
+		log.Println("init write:", err)
+		return
+	}
 	io.Copy(sconn, remote)
 
 }
