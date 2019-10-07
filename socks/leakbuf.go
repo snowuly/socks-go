@@ -6,7 +6,7 @@ type Leakbuf struct {
 }
 
 // if client panic with out of bound increase buffer size to 32kb
-var leakbuf = NewLeakbuf(16*1024, 2*1024)
+var leakbuf = NewLeakbuf(32*1024, 2*1024)
 
 func NewLeakbuf(bufSize, length int) *Leakbuf {
 	return &Leakbuf{bufSize, make(chan []byte, length)}
