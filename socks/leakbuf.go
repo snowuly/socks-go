@@ -5,7 +5,8 @@ type Leakbuf struct {
 	freeList chan []byte
 }
 
-var leakbuf = NewLeakbuf(8*1024, 2*1024)
+// if client panic with out of bound increase buffer size to 32kb
+var leakbuf = NewLeakbuf(16*1024, 2*1024)
 
 func NewLeakbuf(bufSize, length int) *Leakbuf {
 	return &Leakbuf{bufSize, make(chan []byte, length)}

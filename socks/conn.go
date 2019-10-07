@@ -37,7 +37,13 @@ func (c *Conn) Close() error {
 	return c.Conn.Close()
 }
 
-func (c *Conn) InitRead() (err error) {
+func (c *Conn) InitRead(bypass bool) (err error) {
+	if bypass {
+		b := make([]byte, prefaceLen)
+		if _, err = io.ReadFull(c.Conn, b); err != nil {
+			return
+		}
+	}
 	iv := make([]byte, blockSize)
 	if _, err = io.ReadFull(c.Conn, iv); err != nil {
 		return
@@ -45,10 +51,16 @@ func (c *Conn) InitRead() (err error) {
 	c.dec = cipher.NewCFBDecrypter(c.block, iv)
 	return
 }
-func (c *Conn) InitWrite() (err error) {
+func (c *Conn) InitWrite(bypass bool) (err error) {
 	iv := make([]byte, blockSize)
 	rand.Read(iv)
 	c.enc = cipher.NewCFBEncrypter(c.block, iv)
+	if bypass {
+		_, err = c.Conn.Write(preface)
+		if err != nil {
+			return
+		}
+	}
 	_, err = c.Conn.Write(iv)
 	return
 }

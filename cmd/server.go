@@ -1,3 +1,5 @@
+// +build ignore
+
 package main
 
 import (
@@ -22,20 +24,21 @@ func main() {
 	run()
 }
 
-var traffic = socks.NewTraffic()
-
 func run() {
 	config := map[uint16]string{
-		8080: "chenermao",
-		8081: "duanmingming",
+		8080: "test",
 	}
+	ports := make([]uint16, 0)
 
 	for port, pwd := range config {
+		ports = append(ports, port)
+
 		md5Sum := md5.Sum([]byte(pwd))
 		block, _ := aes.NewCipher(md5Sum[:])
 		go createServer(port, block)
 	}
-	traffic.Run()
+
+	socks.TrafficRun(ports)
 
 }
 
@@ -65,7 +68,8 @@ func handle(conn net.Conn, block cipher.Block, serverPort uint16) {
 		}
 	}()
 
-	if err := sconn.InitRead(); err != nil {
+	if err := sconn.InitRead(true); err != nil {
+		log.Println("init read err", err)
 		return
 	}
 
@@ -109,21 +113,17 @@ func handle(conn net.Conn, block cipher.Block, serverPort uint16) {
 
 	var remote net.Conn
 	if remote, err = net.Dial("tcp", addr); err != nil {
+		// invalid domain name or ip address
 		return
 	}
 	closed = true
-	go func() {
-		socks.PipeThenClose(sconn, remote, func(n int) {
-			traffic.Add(serverPort, n)
-		})
-	}()
+	go socks.PipeThenClose(sconn, remote, serverPort)
 
-	if err = sconn.InitWrite(); err != nil {
+	if err = sconn.InitWrite(false); err != nil {
 		sconn.Close()
+		log.Println("init write error", err)
 		return
 	}
-	socks.PipeThenClose(remote, sconn, func(n int) {
-		traffic.Add(serverPort, n)
-	})
+	socks.PipeThenClose(remote, sconn, serverPort)
 
 }

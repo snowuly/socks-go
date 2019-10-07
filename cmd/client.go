@@ -1,3 +1,5 @@
+// +build ignore
+
 package main
 
 import (
@@ -12,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/snowuly/socks/secureconn"
+	"socks-go/socks"
 )
 
 var (
@@ -27,13 +29,13 @@ const (
 	socksVer5       = 5
 	methodNoAuth    = 0
 	socksCmdConnect = 1
+	debug           = false
 )
 
 var (
 	readTimeout = 20 // second
-	debug       = true
-	serverAddr  = ":8080"
-	password    = "chenermao"
+	serverAddr  = "127.0.0.1:8080"
+	password    = "test"
 )
 
 func main() {
@@ -47,6 +49,8 @@ func run() {
 		log.Fatal(err)
 	}
 
+	go socks.StartProxy()
+
 	key := md5.Sum([]byte(password))
 	block, _ := aes.NewCipher(key[:])
 
@@ -56,12 +60,17 @@ func run() {
 			log.Println("accept:", err)
 			continue
 		}
-		go handle(conn, block)
+		go handleClient(conn, block)
 	}
 }
 
-func handle(conn net.Conn, block cipher.Block) {
-	defer conn.Close()
+func handleClient(conn net.Conn, block cipher.Block) {
+	var closed = false
+	defer func() {
+		if !closed {
+			conn.Close()
+		}
+	}()
 
 	var err error
 	if err = handShake(conn); err != nil {
@@ -84,17 +93,19 @@ func handle(conn net.Conn, block cipher.Block) {
 		log.Println("connect remote server:", err)
 		return
 	}
-	sconn := secureconn.New(remote, block)
+	sconn := socks.NewConn(remote, block)
 
+	closed = true
 	go func() {
-		if err := sconn.InitRead(); err != nil {
-			log.Println("init read:", err)
+		defer conn.Close()
+		if err := sconn.InitRead(false); err != nil {
+			// possiblely invalid domain name or ip address, just ignore the error
 			return
 		}
 		io.Copy(conn, sconn)
 	}()
 
-	if err = sconn.InitWrite(); err != nil {
+	if err = sconn.InitWrite(true); err != nil {
 		log.Println("init write:", err)
 		return
 	}

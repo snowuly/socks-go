@@ -1,0 +1,4 @@
+- v1.0
+  - Add autoproxy at http://${address}:1081/proxy.pac
+  - add preface to bypass gfw
+  - fix & perfermance

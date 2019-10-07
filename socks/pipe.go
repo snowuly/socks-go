@@ -11,7 +11,7 @@ func SetReadTimeout(conn net.Conn) {
 	}
 }
 
-func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
+func PipeThenClose(src, dst net.Conn, port uint16) {
 	defer dst.Close()
 	buf := leakbuf.Get()
 	defer leakbuf.Put(buf)
@@ -20,11 +20,9 @@ func PipeThenClose(src, dst net.Conn, addTraffic func(int)) {
 		SetReadTimeout(src)
 		n, err := src.Read(buf)
 
-		if addTraffic != nil {
-			addTraffic(n)
-		}
-
 		if n > 0 {
+			TrafficAdd(port, n)
+
 			_, err := dst.Write(buf[:n])
 			if err != nil {
 				return

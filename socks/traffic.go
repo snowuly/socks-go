@@ -2,30 +2,53 @@ package socks
 
 import (
 	"log"
-	"sync"
 	"time"
 )
 
-type Traffic struct {
-	sync.Mutex
-	stats map[uint16]int64
+type Info struct {
+	data int64
+	last int64
+	ch   chan int
 }
 
-func NewTraffic() *Traffic {
-	return &Traffic{stats: make(map[uint16]int64)}
+var traffic = make(map[uint16]*Info)
+
+func TrafficAdd(port uint16, n int) {
+	traffic[port].ch <- n
 }
 
-func (t *Traffic) Add(port uint16, n int) {
-	t.Lock()
-	t.stats[port] += int64(n)
-	t.Unlock()
+func initPorts(ports []uint16) {
+	for _, port := range ports {
+		traffic[port] = &Info{ch: make(chan int, 100)}
+	}
 }
 
-func (t *Traffic) Run() {
-	tick := time.Tick(10 * time.Second)
+func TrafficRun(ports []uint16) {
+	initPorts(ports)
+
+	for _, info := range traffic {
+		go func(info *Info) {
+			for n := range info.ch {
+				info.data += int64(n)
+			}
+		}(info)
+	}
+
+	printStat()
+
+}
+
+func printStat() {
+	tick := time.Tick(5 * time.Minute)
 
 	for {
 		<-tick
-		log.Println(t.stats)
+
+		for port, info := range traffic {
+			if info.last != info.data {
+				log.Printf("%d:%d:%d\n", port, info.data, info.data-info.last)
+				info.last = info.data
+			}
+		}
 	}
 }
