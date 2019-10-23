@@ -34,9 +34,8 @@ const (
 
 var (
 	readTimeout = 20 // second
-	// serverAddr  = "127.0.0.1:8080"
-	serverAddr = "34.92.174.40:8080"
-	password   = "chenermao"
+	serverAddr  = "127.0.0.1:8080"
+	password   = "test"
 )
 
 func main() {
