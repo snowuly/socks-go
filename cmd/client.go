@@ -34,8 +34,9 @@ const (
 
 var (
 	readTimeout = 20 // second
-	serverAddr  = "127.0.0.1:8080"
-	password    = "test"
+	// serverAddr  = "127.0.0.1:8080"
+	serverAddr = "34.92.174.40:8080"
+	password   = "chenermao"
 )
 
 func main() {
@@ -115,7 +116,6 @@ func handleClient(conn net.Conn, block cipher.Block) {
 }
 
 func getRequest(conn net.Conn) (rawAddr []byte, host string, err error) {
-	setReadTimeout(conn)
 	// 1(ver) + 1(cmd) + 1(rsv) + atyp(1) + 255(domainname) + port(2)
 	buf := make([]byte, 261)
 	var n int
@@ -176,7 +176,6 @@ func handShake(conn net.Conn) (err error) {
 	buf := make([]byte, 8)
 
 	var n int
-	setReadTimeout(conn)
 	if n, err = io.ReadAtLeast(conn, buf, 2); err != nil {
 		return
 	}

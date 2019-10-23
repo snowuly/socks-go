@@ -69,7 +69,6 @@ func handle(conn net.Conn, block cipher.Block, serverPort uint16) {
 	}()
 
 	if err := sconn.InitRead(true); err != nil {
-		log.Println("init read err", err)
 		return
 	}
 
@@ -78,7 +77,6 @@ func handle(conn net.Conn, block cipher.Block, serverPort uint16) {
 	var n int
 	var err error
 
-	socks.SetReadTimeout(sconn)
 	if n, err = io.ReadFull(sconn, buf[:2]); err != nil {
 		log.Println("read remote addr:", err)
 		return
