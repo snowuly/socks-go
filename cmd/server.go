@@ -1,42 +1,37 @@
-// +build ignore
-
-package main
+package cmd
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"socks-go/socks"
 	"strconv"
+
+	"github.com/snowuly/socks-go/socks"
 )
 
-var (
-	errExtraData = errors.New("socks get extra data")
-)
-
-func main() {
-	run()
-}
-
-func run() {
-	config := map[uint16]string{
-		8080: "test",
-	}
+func RunServer(port uint16, pwd string) {
+	// config := map[uint16]string{
+	// 	8080: "test",
+	// }
 	ports := make([]uint16, 0)
 
-	for port, pwd := range config {
-		ports = append(ports, port)
+	ports = append(ports, port)
+	md5Sum := md5.Sum([]byte(pwd))
+	block, _ := aes.NewCipher(md5Sum[:])
+	go createServer(port, block)
 
-		md5Sum := md5.Sum([]byte(pwd))
-		block, _ := aes.NewCipher(md5Sum[:])
-		go createServer(port, block)
-	}
+	// for port, pwd := range config {
+	// 	ports = append(ports, port)
+
+	// 	md5Sum := md5.Sum([]byte(pwd))
+	// 	block, _ := aes.NewCipher(md5Sum[:])
+	// 	go createServer(port, block)
+	// }
 
 	socks.TrafficRun(ports)
 

@@ -1,6 +1,4 @@
-// +build ignore
-
-package main
+package cmd
 
 import (
 	"crypto/aes"
@@ -14,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"socks-go/socks"
+	"github.com/snowuly/socks-go/socks"
 )
 
 var (
@@ -34,15 +32,12 @@ const (
 
 var (
 	readTimeout = 20 // second
-	serverAddr  = "127.0.0.1:8080"
-	password   = "test"
+	serverAddr  string
+	// password    = "test"
 )
 
-func main() {
-	run()
-}
-
-func run() {
+func RunClient(addr, password string) {
+	serverAddr = addr
 
 	ln, err := net.Listen("tcp", ":1081")
 	if err != nil {
