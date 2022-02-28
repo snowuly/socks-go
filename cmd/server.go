@@ -1,30 +1,20 @@
-// +build ignore
-
-package main
+package cmd
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"socks-go/socks"
 	"strconv"
+
+	"github.com/snowuly/socks-go/socks"
 )
 
-var (
-	errExtraData = errors.New("socks get extra data")
-)
-
-func main() {
-	run()
-}
-
-func run() {
+func RunServer() {
 	config := map[uint16]string{
 		8080: "test",
 	}
